@@ -360,9 +360,11 @@ class JSONDomain(domains.Domain):
         That is what this method is doing.
 
         """
+        fake_factory = faker.Factory.create()
         for name, language, parent in self.data['examples']:
             props = self.get_object(name)
-            sample_data = props.generate_sample_data(self.data['all_objects'])
+            sample_data = props.generate_sample_data(self.data['all_objects'],
+                                                     fake_factory)
             if language == 'yaml' and yaml is not None:
                 title = 'YAML Example'
                 code_text = yaml.safe_dump(sample_data, indent=4,
@@ -398,7 +400,6 @@ class PropertyDefinition(object):
         self.key = normalize_object_name(name)
         self.docname = docname
         self.should_index = should_index
-        self.fakes = faker.Factory.create()
         self.property_types = {}
 
     def gather(self, contentnode):
@@ -436,20 +437,21 @@ class PropertyDefinition(object):
 
         self.property_types[name] = typ
 
-    def generate_sample_data(self, all_objects):
+    def generate_sample_data(self, all_objects, fake_factory):
         sample_data = {}
         for name, typ in self.property_types.items():
             if typ:
-                if hasattr(self.fakes, typ):
-                    value = getattr(self.fakes, typ)()
+                if hasattr(fake_factory, typ):
+                    value = getattr(fake_factory, typ)()
                 elif typ in ('integer', 'int'):
-                    value = self.fakes.pyint()
+                    value = fake_factory.pyint()
                 elif typ in ('string', 'str'):
-                    value = self.fakes.pystr()
+                    value = fake_factory.pystr()
                 else:
                     try:
                         other = all_objects[typ]
-                        value = other.generate_sample_data(all_objects)
+                        value = other.generate_sample_data(all_objects,
+                                                           fake_factory)
                     except KeyError:
                         value = '{%s object}' % typ
             else:
