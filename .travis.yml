@@ -9,9 +9,9 @@ install:
 script:
 - "./setup.py build_sphinx"
 deploy:
-  password:
   provider: pypi
   user: daveshawley
+  password:
     secure: T5rjFAtBr9+PY/paCSZOTRmyF9YFcYL75cb8R6ZTF0xDrwKn63obbVztazMgNYPSCdQSvZfYRr78EEpX0jijCCXWVgmiCqIJYi9rxj62v8NqvJffDFDQoYmgd0b+CRbqfwzE24nlOwLu+ACgohZqYXZuRU7eQ0PdO71BpbQ+hEycE48IWQwcgqtsNA3tatW0AfTj2C39r44uXPefJnmjnVHagxcGS1Uqo7CksFuIuqKbVvz68oJmOcDQO8V/tVXeMsmpD5R067LGNCehB+nUh1OArGD/oSKGZ4JFeVnkfv0JJUkdFf0UNSpAEzI9Mws8QLHkoJw4CGX02W5dWq1E9A1BZ8QOIgttd0zfqi+VflXt2Wtg7r5/ljsQuEmmM3ReueOBlml45HAnF9kYjEomfMzKgpptoDYN6iQHXZaNlX/J/Uw25vJ/HACxTIOgUShot9M+FDnvgyz6gn6NsmLFmjhY6uglt7O3K+cYR4IpLS6pfnJfXLwN7o4rfRUHTcbAuJXQmkKvMvQ277gXMzCddZSOy7uuMevE3jMtAFQnOX+L0hNl+S8rlwREEzBbn2O7TWV680L0NLATRDUjO9NyMipjHCgzx/3TS6j1BFQohHrFFZhMYXpeiQwlCTEyU+AE8sGzKaVHC3IbbuI5Uor7Bn5tlissvg48+vWYYQTpMc8=
   distributions: sdist bdist_wheel
   on:
