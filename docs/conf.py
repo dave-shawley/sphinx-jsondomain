@@ -9,7 +9,6 @@ needs_sphinx = '1.0'
 extensions = [
     'sphinx.ext.intersphinx',
     'sphinxjsondomain',
-    'sphinxcontrib.httpdomain',
 ]
 
 master_doc = 'index'

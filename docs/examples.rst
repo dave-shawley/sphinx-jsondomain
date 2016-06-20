@@ -50,11 +50,3 @@ Examples
    :property url avatar_url: url to user's selected avatar image
    :property url gravatar_url: url to the user's gravatar image or
       the empty string
-
-.. http:get:: /
-
-   Fetch a foo!
-
-   :queryparam str id: foo to fetch
-
-   :status 500: something went wrong, body is a :json:object:`Error`
