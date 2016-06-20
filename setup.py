@@ -4,8 +4,6 @@ import os.path
 
 import setuptools
 
-from sphinxcontrib import jsondomain
-
 
 def read_requirements(name):
     requirements = []
@@ -23,14 +21,13 @@ def read_requirements(name):
 
 setuptools.setup(
     name='sphinx-jsondomain',
-    version=jsondomain.__version__,
+    version='0.0.0',
     url='https://github.com/dave-shawley/sphinx-jsondomain',
     description='Describe JSON document structures in sphinx',
     long_description='\n'+open('README.rst').read(),
     author='Dave Shawley',
     author_email='daveshawley+python@gmail.com',
-    packages=setuptools.find_packages(),
-    namespace_packages=['sphinxcontrib'],
+    py_modules=['sphinxjsondomain'],
     install_requires=read_requirements('installation.txt'),
     classifiers=[
         'Intended Audience :: Developers',
