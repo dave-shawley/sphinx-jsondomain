@@ -1,2 +1,3 @@
 -r installation.txt
+pyyaml>=3.11,<4
 wheel
