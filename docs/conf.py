@@ -4,7 +4,7 @@ import alabaster
 project = 'sphinx-jsondomain'
 copyright = '2016, Dave Shawley'
 release = '0.0'
-version = '0.0.0'
+version = '0.0.1'
 needs_sphinx = '1.0'
 extensions = [
     'sphinx.ext.intersphinx',
