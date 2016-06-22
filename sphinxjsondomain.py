@@ -376,7 +376,9 @@ class JSONDomain(domains.Domain):
             if language == 'yaml' and yaml is not None:
                 title = 'YAML Example'
                 code_text = yaml.safe_dump(sample_data, indent=4,
-                                           default_flow_style=False)
+                                           default_flow_style=False,
+                                           explicit_start=True,
+                                           version=(1, 2))
             else:
                 if language == 'yaml':
                     self.env.warn(docname,
