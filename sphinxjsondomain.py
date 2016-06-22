@@ -258,7 +258,7 @@ class JSONDomain(domains.Domain):
     }
     for alias, target in [('url', 'uri'), ('int', 'integer'),
                           ('str', 'string'), ('user_name', 'string'),
-                          ('number', 'float')]:
+                          ('number', 'float'), ('bool', 'boolean')]:
         REF_TYPES[alias] = REF_TYPES[target]
 
     def clear_doc(self, docname):
@@ -476,19 +476,28 @@ class PropertyDefinition(object):
         sample_data = {}
         for name, typ in self.property_types.items():
             if typ:
-                if hasattr(fake_factory, typ):
-                    value = getattr(fake_factory, typ)()
-                elif typ in ('integer', 'int'):
-                    value = fake_factory.pyint()
-                elif typ in ('string', 'str'):
-                    value = fake_factory.pystr()
-                else:
-                    try:
-                        other = all_objects[typ]
-                        value = other.generate_sample_data(all_objects,
-                                                           fake_factory)
-                    except KeyError:
-                        value = '{%s object}' % typ
+                try:
+                    other = all_objects[typ]
+                    value = other.generate_sample_data(all_objects,
+                                                       fake_factory)
+                except KeyError:
+                    value = None
+
+                if value is None:
+                    if hasattr(fake_factory, typ):
+                        value = getattr(fake_factory, typ)()
+                    elif typ in ('integer', 'int'):
+                        value = fake_factory.pyint()
+                    elif typ in ('string', 'str'):
+                        value = fake_factory.pystr()
+                    elif typ in ('boolean', 'bool'):
+                        value = fake_factory.pybool()
+                    elif typ == 'null':
+                        value = None
+
+                if value is None and typ != 'null':
+                    value = '{%s object}' % typ
+
             else:
                 value = '\uFFFD (Unspecified)'
             sample_data[name] = value
