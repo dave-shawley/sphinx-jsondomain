@@ -3,6 +3,7 @@
 .. toctree::
    :hidden:
 
+   usage
    examples
    contributing
    history
