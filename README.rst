@@ -2,7 +2,7 @@ Sphinx JSON Domain
 ==================
 
 .. image:: https://img.shields.io/pypi/v/sphinx-jsondomain.svg?maxAge=2592000
-   :target: https://pypi.python.org/sphinx-jsondomain
+   :target: https://pypi.python.org/pypi/sphinx-jsondomain
 .. image:: https://readthedocs.org/projects/sphinx-jsondomain/badge/?version=latest
    :target: http://sphinx-jsondomain.readthedocs.io/en/latest/?badge=latest
 .. image:: https://travis-ci.org/dave-shawley/sphinx-jsondomain.svg?branch=master
