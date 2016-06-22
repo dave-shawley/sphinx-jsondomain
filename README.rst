@@ -1,5 +1,13 @@
 Sphinx JSON Domain
 ==================
+
+.. image:: https://img.shields.io/pypi/v/sphinx-jsondomain.svg?maxAge=2592000
+   :target: https://pypi.python.org/sphinx-jsondomain
+.. image:: https://readthedocs.org/projects/sphinx-jsondomain/badge/?version=latest
+   :target: http://sphinx-jsondomain.readthedocs.io/en/latest/?badge=latest
+.. image:: https://travis-ci.org/dave-shawley/sphinx-jsondomain.svg?branch=master
+   :target: https://travis-ci.org/dave-shawley/sphinx-jsondomain
+
 I was surprised that this didn't already exist somewhere when I wanted to
 describe a JSON document outside of using `sphinxcontrib-httpdomain`_ to
 document one of my APIs.  This extension simplifies describing structured
@@ -19,7 +27,26 @@ JSON documents using a new `Sphinx domain`_.
          or the empty string
 
 This will format to something pretty and make references to
-`:json:object:`Github User`` work as expected.
+`:json:object:`Github User`` work as expected.  See the `online examples`_
+for a better idea of what is possible.
+
+Quick Start
+-----------
+Install sphinx and the ``sphinx-jsondomain`` package::
+
+   $ python3 -mvenv env
+   $ env/bin/pip install -q sphinx sphinx-jsondomain
+
+Set up the sphinx documentation root and build your documentation set::
+
+   $ env/bin/sphinx-quickstart -p my-project -r 0.0 -v 0.0.0 \
+   > -a 'Dave Shawley <daveshawley@gmail.com>' --quiet docs
+   $ env/bin/sphinx-build -b html docs build/sphinx/html
+
+Now, find the ``extensions`` definition in *docs/conf.py* and add
+``sphinxjsondomain`` to the end.  Add a ``json:object`` directive to
+*docs/index.rst* and run *sphinx-build* again to see the results.
 
 .. _sphinxcontrib-httpdomain: https://pythonhosted.org/sphinxcontrib-httpdomain/
 .. _sphinx domain: http://www.sphinx-doc.org/en/stable/domains.html#what-is-a-domain
+.. _online examples: https://sphinx-jsondomain.readthedocs.io/en/latest/examples.html

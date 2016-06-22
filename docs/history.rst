@@ -1,6 +1,10 @@
 Release History
 ===============
 
+`Next Release`_
+---------------
+- Add support for ``options`` parameter.
+
 `0.0.1`_ (20-Jun-2016)
 ----------------------
 - Initial implementation of ``:json:`` domain including support for

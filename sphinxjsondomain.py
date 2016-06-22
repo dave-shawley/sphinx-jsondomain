@@ -235,10 +235,17 @@ class JSONDomain(domains.Domain):
     REF_TYPES = {  # type-name -> (URL, tool tip)
         'uri': ('https://tools.ietf.org/html/rfc3986',
                 'URI as described in RFC3986'),
+        'boolean': (
+            'https://docs.python.org/library/stdtypes.html#boolean-values',
+            'Python Boolean'),
         'string': ('https://docs.python.org/library/stdtypes.html#str',
                    'Python String'),
         'integer': ('https://docs.python.org/library/stdtypes.html#int',
                     'Python Integer'),
+        'float': ('https://docs.python.org/library/stdtypes.html#float',
+                  'Python Float'),
+        'null': ('https://docs.python.org/library/constants.html#None',
+                 'Python None'),
         'email': ('https://tools.ietf.org/html/rfc2822#section-3.4.1',
                   'Email Address'),
         'iso8601': ('https://tools.ietf.org/html/rfc3339#section-5.6',
@@ -250,7 +257,8 @@ class JSONDomain(domains.Domain):
         'sha256': ('https://tools.ietf.org/html/rfc6234', 'SHA256 checksum'),
     }
     for alias, target in [('url', 'uri'), ('int', 'integer'),
-                          ('str', 'string'), ('user_name', 'string')]:
+                          ('str', 'string'), ('user_name', 'string'),
+                          ('number', 'float'), ('bool', 'boolean')]:
         REF_TYPES[alias] = REF_TYPES[target]
 
     def clear_doc(self, docname):
@@ -368,7 +376,9 @@ class JSONDomain(domains.Domain):
             if language == 'yaml' and yaml is not None:
                 title = 'YAML Example'
                 code_text = yaml.safe_dump(sample_data, indent=4,
-                                           default_flow_style=False)
+                                           default_flow_style=False,
+                                           explicit_start=True,
+                                           version=(1, 2))
             else:
                 if language == 'yaml':
                     self.env.warn(docname,
@@ -401,13 +411,16 @@ class PropertyDefinition(object):
         self.docname = docname
         self.should_index = should_index
         self.property_types = {}
+        self.property_options = {}
 
     def gather(self, contentnode):
         """
         :param docutils.nodes.Element contentnode:
         """
+        field_nodes = {}
         for node in contentnode:
             if isinstance(node, nodes.field_list):
+                children = list(node)
                 for field in node:
                     description, content = field
                     tokens = description.astext().split()
@@ -420,6 +433,7 @@ class PropertyDefinition(object):
                             name = tokens[1]
 
                         self.set_property_type(name, typ)
+                        field_nodes[name] = content
 
                     elif tokens[0] == 'proptype':
                         name = tokens[1]
@@ -431,6 +445,29 @@ class PropertyDefinition(object):
 
                         self.set_property_type(name, typ)
 
+                    elif tokens[0] == 'options':
+                        name = tokens[1]
+                        self.property_options[name] = \
+                            content.astext().replace(' ', '').split(',')
+                        children.remove(field)
+
+                node.children = children
+
+        for name, options in self.property_options.items():
+            if not options:
+                continue
+
+            try:
+                n = field_nodes[name][0]
+                n += nodes.inline(' (', ' (')
+                n += nodes.emphasis(options[0], options[0])
+                for opt in options[1:]:
+                    n += nodes.inline(', ', ', ')
+                    n += nodes.emphasis(opt, opt)
+                n += nodes.inline(')', ')')
+            except KeyError:
+                pass
+
     def set_property_type(self, name, typ):
         if name in self.property_types and not typ:
             return
@@ -441,19 +478,28 @@ class PropertyDefinition(object):
         sample_data = {}
         for name, typ in self.property_types.items():
             if typ:
-                if hasattr(fake_factory, typ):
-                    value = getattr(fake_factory, typ)()
-                elif typ in ('integer', 'int'):
-                    value = fake_factory.pyint()
-                elif typ in ('string', 'str'):
-                    value = fake_factory.pystr()
-                else:
-                    try:
-                        other = all_objects[typ]
-                        value = other.generate_sample_data(all_objects,
-                                                           fake_factory)
-                    except KeyError:
-                        value = '{%s object}' % typ
+                try:
+                    other = all_objects[typ]
+                    value = other.generate_sample_data(all_objects,
+                                                       fake_factory)
+                except KeyError:
+                    value = None
+
+                if value is None:
+                    if hasattr(fake_factory, typ):
+                        value = getattr(fake_factory, typ)()
+                    elif typ in ('integer', 'int'):
+                        value = fake_factory.pyint()
+                    elif typ in ('string', 'str'):
+                        value = fake_factory.pystr()
+                    elif typ in ('boolean', 'bool'):
+                        value = fake_factory.pybool()
+                    elif typ == 'null':
+                        value = None
+
+                if value is None and typ != 'null':
+                    value = '{%s object}' % typ
+
             else:
                 value = '\uFFFD (Unspecified)'
             sample_data[name] = value
