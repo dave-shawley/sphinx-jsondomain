@@ -7,7 +7,9 @@ Examples
 
    Information about a Github issue.
 
-   :property integer id: Github assigned issue ID
+   :property id: Github assigned issue ID
+   :proptype id: integer
+   :options id: nullable, default=''
    :property url url: direct link to this issue
    :property url repository_url: direct link to the repository that
       this issue lives in
