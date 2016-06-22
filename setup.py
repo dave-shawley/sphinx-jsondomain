@@ -21,15 +21,17 @@ def read_requirements(name):
 
 setuptools.setup(
     name='sphinx-jsondomain',
-    version='0.0.1',
+    version='0.0.2',
     url='https://github.com/dave-shawley/sphinx-jsondomain',
     description='Describe JSON document structures in sphinx',
     long_description='\n'+open('README.rst').read(),
+    license='BSD',
     author='Dave Shawley',
     author_email='daveshawley+python@gmail.com',
     py_modules=['sphinxjsondomain'],
     install_requires=read_requirements('installation.txt'),
     classifiers=[
+        'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
         'Operating System :: OS Independent',
