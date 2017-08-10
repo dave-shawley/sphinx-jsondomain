@@ -1,6 +1,12 @@
 Release History
 ===============
 
+`Next Release`_
+---------------
+- Switch to using `Faker`_ instead of fake-factory.
+
+.. _Faker:: https://github.com/joke2k/faker
+
 `0.0.2`_ (22-Jun-2016)
 ----------------------
 - Add support for ``options`` parameter.
