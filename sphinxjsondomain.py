@@ -36,7 +36,7 @@ class JSONObject(directives.ObjectDescription):
 
     doc_field_types = [docfields.TypedField('property',
                                             label='Object Properties',
-                                            names=('property', 'member'),
+                                            names=('property', 'property-opt', 'member'),
                                             rolename='prop',
                                             typerolename='jsonprop',
                                             typenames=('proptype', 'type'))]
@@ -255,11 +255,16 @@ class JSONDomain(domains.Domain):
         'md5': ('https://tools.ietf.org/html/rfc1321', 'MD5 checksum'),
         'sha1': ('https://tools.ietf.org/html/rfc3174', 'SHA1 checksum'),
         'sha256': ('https://tools.ietf.org/html/rfc6234', 'SHA256 checksum'),
+        'sentence': ('https://faker.readthedocs.io/en/master/locales/en_US.html#faker-providers-lorem', 'A sentence'),
     }
     for alias, target in [('url', 'uri'), ('int', 'integer'),
                           ('str', 'string'), ('user_name', 'string'),
                           ('number', 'float'), ('bool', 'boolean')]:
         REF_TYPES[alias] = REF_TYPES[target]
+
+    # create aliases for array
+    for target in REF_TYPES.copy().keys():
+        REF_TYPES['[%s]' % target] = REF_TYPES[target]
 
     def clear_doc(self, docname):
         names = [k for k, v in self.data['objects'].items()
@@ -395,6 +400,12 @@ class JSONDomain(domains.Domain):
             parent.append(example)
 
 
+class PropertyQualifier:
+    def __init__(self):
+        self.is_array = False
+        self.example_data = None
+
+
 class PropertyDefinition(object):
     """
     Information about a specific JSON Object definition.
@@ -412,19 +423,21 @@ class PropertyDefinition(object):
         self.should_index = should_index
         self.property_types = {}
         self.property_options = {}
+        self.property_qualifiers = {}  # a map of property name --> PropertyQualifier
 
     def gather(self, contentnode):
         """
         :param docutils.nodes.Element contentnode:
         """
         field_nodes = {}
+        optional_props = {}
         for node in contentnode:
             if isinstance(node, nodes.field_list):
                 children = list(node)
                 for field in node:
                     description, content = field
                     tokens = description.astext().split()
-                    if tokens[0] == 'property':
+                    if tokens[0] == 'property' or tokens[0] == 'property-opt':
                         if len(tokens) == 3:
                             typ = tokens[1]
                             name = tokens[2]
@@ -432,8 +445,18 @@ class PropertyDefinition(object):
                             typ = None
                             name = tokens[1]
 
+                        # check if name is enclosed by []
+                        if typ and typ.startswith('[') and typ.endswith(']'):
+                            typ = typ[1:-1]
+
+                            self.property_qualifiers[name] = self.property_qualifiers.get(name, PropertyQualifier())
+                            self.property_qualifiers[name].is_array = True
+
                         self.set_property_type(name, typ)
                         field_nodes[name] = content
+
+                        if tokens[0] == 'property-opt':
+                            optional_props[name] = True
 
                     elif tokens[0] == 'proptype':
                         name = tokens[1]
@@ -445,6 +468,12 @@ class PropertyDefinition(object):
 
                         self.set_property_type(name, typ)
 
+                    elif tokens[0] == 'propexample':
+                        name = tokens[1]
+
+                        self.property_qualifiers[name] = self.property_qualifiers.get(name, PropertyQualifier())
+                        self.property_qualifiers[name].example_data = content[0][0].lstrip()
+
                     elif tokens[0] == 'options':
                         name = tokens[1]
                         self.property_options[name] = \
@@ -452,6 +481,15 @@ class PropertyDefinition(object):
                         children.remove(field)
 
                 node.children = children
+
+        for opt_name in optional_props.keys():
+            try:
+                n = field_nodes[opt_name][0]
+                n += nodes.inline(' (', ' (')
+                n += nodes.strong('optional', 'optional')
+                n += nodes.inline(')', ')')
+            except KeyError:
+                pass
 
         for name, options in self.property_options.items():
             if not options:
@@ -477,34 +515,58 @@ class PropertyDefinition(object):
     def generate_sample_data(self, all_objects, fake_factory):
         sample_data = {}
         for name, typ in self.property_types.items():
-            if typ:
-                try:
-                    other = all_objects[typ]
-                    value = other.generate_sample_data(all_objects,
-                                                       fake_factory)
-                except KeyError:
-                    value = None
+            # the data generator
+            def gen_data():
+                if name in self.property_qualifiers and self.property_qualifiers[name].example_data:
+                    return self.property_qualifiers[name].example_data
+                else:
+                    return self.generate_sample_data_for_type(typ, all_objects, fake_factory)
 
-                if value is None:
-                    if hasattr(fake_factory, typ):
-                        value = getattr(fake_factory, typ)()
-                    elif typ in ('integer', 'int'):
-                        value = fake_factory.pyint()
-                    elif typ in ('string', 'str'):
-                        value = fake_factory.pystr()
-                    elif typ in ('boolean', 'bool'):
-                        value = fake_factory.pybool()
-                    elif typ == 'null':
-                        value = None
-
-                if value is None and typ != 'null':
-                    value = '{%s object}' % typ
+            if name in self.property_qualifiers:
+                if self.property_qualifiers[name].is_array:
+                    sample_data[name] = [
+                        gen_data(),
+                        gen_data()]
+                else:
+                    sample_data[name] = gen_data()
 
             else:
-                value = '\uFFFD (Unspecified)'
-            sample_data[name] = value
+                sample_data[name] = gen_data()
 
         return sample_data
+
+    @staticmethod
+    def generate_sample_data_for_type(typ, all_objects, fake_factory):
+        if typ:
+            # if name in self.property_qualifiers:
+            #    if self.property_qualifiers[name].is_array:
+
+            try:
+                other = all_objects[typ]
+                value = other.generate_sample_data(all_objects,
+                                                   fake_factory)
+            except KeyError:
+                value = None
+
+            if value is None:
+                if hasattr(fake_factory, typ):
+                    value = getattr(fake_factory, typ)()
+                elif typ in ('integer', 'int'):
+                    value = fake_factory.pyint()
+                elif typ in ('string', 'str'):
+                    value = fake_factory.pystr()
+                elif typ in ('boolean', 'bool'):
+                    value = fake_factory.pybool()
+                elif typ == 'null':
+                    value = None
+
+            if value is None and typ != 'null':
+                value = '{%s object}' % typ
+
+        else:
+            value = '\uFFFD (Unspecified)'
+
+        return value
 
 
 def normalize_object_name(obj_name):
