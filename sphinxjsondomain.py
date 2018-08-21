@@ -14,6 +14,49 @@ except ImportError:
     yaml = None
 
 
+class JsonField(docfields.TypedField):
+    def __init__(self, name, names=(), typenames=[], label=None, examplenames=(),
+                 rolename=None, typerolename=None, can_collapse=False):
+        docfields.TypedField.__init__(self, name, names, typenames, label, rolename, typerolename, can_collapse)
+        self.examplenames = examplenames
+
+
+class JsonFieldTransformer(docfields.DocFieldTransformer):
+    def __init__(self, directive):
+        docfields.DocFieldTransformer.__init__(self, directive)
+
+        self.examplemap = {}
+
+        for fieldtype in self.directive.__class__.doc_field_types:
+            for name in fieldtype.examplenames:
+                self.examplemap[name] = True
+
+    def transform_all(self, node):
+        # type: (nodes.Node) -> None
+        """Transform all field list children of a node."""
+        # don't traverse, only handle field lists that are immediate children
+
+        for child in node:
+            if isinstance(child, nodes.field_list):
+
+                # remove examplenames nodes
+                nodes_to_delete = []
+                for c in child.children:
+                    fieldname, fieldbody = c
+                    try:
+                        # split into field type and argument
+                        fieldtype, fieldarg = fieldname.astext().split(None, 1)
+                        if fieldtype in self.examplemap:
+                            nodes_to_delete.append(c)
+                    except ValueError:
+                        pass
+
+                for n in nodes_to_delete:
+                    child.children.remove(n)
+
+                self.transform(child)
+
+
 class JSONObject(directives.ObjectDescription):
     """
     Implementation of ``json:object``.
@@ -34,12 +77,13 @@ class JSONObject(directives.ObjectDescription):
 
     """
 
-    doc_field_types = [docfields.TypedField('property',
+    doc_field_types = [JsonField('property',
                                             label='Object Properties',
                                             names=('property', 'property-opt', 'member'),
                                             rolename='prop',
                                             typerolename='jsonprop',
-                                            typenames=('proptype', 'type', 'propexample'))]
+                                            typenames=('proptype', 'type'),
+                                            examplenames=['propexample'])]
     """A list of fields that are implemented."""
 
     option_spec = {
@@ -129,7 +173,7 @@ class JSONObject(directives.ObjectDescription):
             if not noindex:
                 self.add_target_and_index(name, node, signode)
 
-        docfields.DocFieldTransformer(self).transform_all(contentnode)
+        JsonFieldTransformer(self).transform_all(contentnode)
 
         if 'showexample' in self.options:
             paragraph = addnodes.compact_paragraph()
@@ -472,7 +516,7 @@ class PropertyDefinition(object):
                         name = tokens[1]
 
                         self.property_qualifiers[name] = self.property_qualifiers.get(name, PropertyQualifier())
-                        self.property_qualifiers[name].example_data = content[0][0]
+                        self.property_qualifiers[name].example_data = content[0][0].lstrip()
 
                     elif tokens[0] == 'options':
                         name = tokens[1]
