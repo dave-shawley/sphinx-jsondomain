@@ -34,6 +34,9 @@ ReStructuredText Usage
       necessary if you are setting the property type to a hyperlinked
       value (e.g., :rst:role:`json:object` role instance).
 
+   **:propexample** *identifier* **:** *example*
+      Set's the example showed when the *showexample* option is enabled.
+
    **:showexample:**
       If this option is specified, then the rendered output will contain
       a generated example.  The example data is generated using the
@@ -138,6 +141,7 @@ example.
       :property street_address street: street address for this
          location
       :property city city: city name
+      :propexample city: New York
       :property state_abbr state: abbreviated state name
       :property postalcode zip: postal code for this address
 

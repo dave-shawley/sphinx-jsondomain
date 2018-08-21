@@ -39,7 +39,7 @@ class JSONObject(directives.ObjectDescription):
                                             names=('property', 'property-opt', 'member'),
                                             rolename='prop',
                                             typerolename='jsonprop',
-                                            typenames=('proptype', 'type'))]
+                                            typenames=('proptype', 'type', 'propexample'))]
     """A list of fields that are implemented."""
 
     option_spec = {
@@ -255,6 +255,7 @@ class JSONDomain(domains.Domain):
         'md5': ('https://tools.ietf.org/html/rfc1321', 'MD5 checksum'),
         'sha1': ('https://tools.ietf.org/html/rfc3174', 'SHA1 checksum'),
         'sha256': ('https://tools.ietf.org/html/rfc6234', 'SHA256 checksum'),
+        'sentence': ('https://faker.readthedocs.io/en/master/locales/en_US.html#faker-providers-lorem', 'A sentence'),
     }
     for alias, target in [('url', 'uri'), ('int', 'integer'),
                           ('str', 'string'), ('user_name', 'string'),
@@ -402,6 +403,7 @@ class JSONDomain(domains.Domain):
 class PropertyQualifier:
     def __init__(self):
         self.is_array = False
+        self.example_data = None
 
 
 class PropertyDefinition(object):
@@ -466,6 +468,12 @@ class PropertyDefinition(object):
 
                         self.set_property_type(name, typ)
 
+                    elif tokens[0] == 'propexample':
+                        name = tokens[1]
+
+                        self.property_qualifiers[name] = self.property_qualifiers.get(name, PropertyQualifier())
+                        self.property_qualifiers[name].example_data = content[0][0]
+
                     elif tokens[0] == 'options':
                         name = tokens[1]
                         self.property_options[name] = \
@@ -507,14 +515,23 @@ class PropertyDefinition(object):
     def generate_sample_data(self, all_objects, fake_factory):
         sample_data = {}
         for name, typ in self.property_types.items():
+            # the data generator
+            def gen_data():
+                if name in self.property_qualifiers and self.property_qualifiers[name].example_data:
+                    return self.property_qualifiers[name].example_data
+                else:
+                    return self.generate_sample_data_for_type(typ, all_objects, fake_factory)
 
-            if name in self.property_qualifiers and self.property_qualifiers[name].is_array:
-                sample_data[name] = [
-                    self.generate_sample_data_for_type(typ, all_objects, fake_factory),
-                    self.generate_sample_data_for_type(typ, all_objects, fake_factory)]
+            if name in self.property_qualifiers:
+                if self.property_qualifiers[name].is_array:
+                    sample_data[name] = [
+                        gen_data(),
+                        gen_data()]
+                else:
+                    sample_data[name] = gen_data()
 
             else:
-                sample_data[name] = self.generate_sample_data_for_type(typ, all_objects, fake_factory)
+                sample_data[name] = gen_data()
 
         return sample_data
 
