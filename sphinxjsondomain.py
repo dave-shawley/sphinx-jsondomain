@@ -39,7 +39,7 @@ class JSONObject(directives.ObjectDescription):
                                             names=('property', 'property-opt', 'member'),
                                             rolename='prop',
                                             typerolename='jsonprop',
-                                            typenames=('proptype', 'type', 'propexample'))]
+                                            typenames=('proptype', 'type'))]
     """A list of fields that are implemented."""
 
     option_spec = {
@@ -472,7 +472,7 @@ class PropertyDefinition(object):
                         name = tokens[1]
 
                         self.property_qualifiers[name] = self.property_qualifiers.get(name, PropertyQualifier())
-                        self.property_qualifiers[name].example_data = content[0][0]
+                        self.property_qualifiers[name].example_data = content[0][0].lstrip()
 
                     elif tokens[0] == 'options':
                         name = tokens[1]
