@@ -26,6 +26,9 @@ ReStructuredText Usage
       recognizable.  It is also used to generate sample data, if the
       ``:showexample:`` option is included.
 
+   **:property-opt** *[type]* *identifier* **:** *description*
+      Same as above, but add an '(optional)' string at the end.
+
    **:proptype** *identifier* **:** *type*
       Set's the type of the property named *identifier*.  This is
       necessary if you are setting the property type to a hyperlinked

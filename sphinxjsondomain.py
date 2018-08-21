@@ -36,7 +36,7 @@ class JSONObject(directives.ObjectDescription):
 
     doc_field_types = [docfields.TypedField('property',
                                             label='Object Properties',
-                                            names=('property', 'member'),
+                                            names=('property', 'property-opt', 'member'),
                                             rolename='prop',
                                             typerolename='jsonprop',
                                             typenames=('proptype', 'type'))]
@@ -418,13 +418,14 @@ class PropertyDefinition(object):
         :param docutils.nodes.Element contentnode:
         """
         field_nodes = {}
+        optional_props = {}
         for node in contentnode:
             if isinstance(node, nodes.field_list):
                 children = list(node)
                 for field in node:
                     description, content = field
                     tokens = description.astext().split()
-                    if tokens[0] == 'property':
+                    if tokens[0] == 'property' or tokens[0] == 'property-opt':
                         if len(tokens) == 3:
                             typ = tokens[1]
                             name = tokens[2]
@@ -434,6 +435,9 @@ class PropertyDefinition(object):
 
                         self.set_property_type(name, typ)
                         field_nodes[name] = content
+
+                        if tokens[0] == 'property-opt':
+                            optional_props[name] = True
 
                     elif tokens[0] == 'proptype':
                         name = tokens[1]
@@ -452,6 +456,15 @@ class PropertyDefinition(object):
                         children.remove(field)
 
                 node.children = children
+
+        for opt_name in optional_props.keys():
+            try:
+                n = field_nodes[opt_name][0]
+                n += nodes.inline(' (', ' (')
+                n += nodes.strong('optional', 'optional')
+                n += nodes.inline(')', ')')
+            except KeyError:
+                pass
 
         for name, options in self.property_options.items():
             if not options:
