@@ -105,6 +105,8 @@ generate example snippets if the *:showexample:* option is included.
 **user_name** links to the defintion for the Python :class:`str` type.
    Examples are generated using `faker.providers.internet`_.
 
+**[type]** by enclosing any type into [], it indicate a json array.
+
 Example Generation
 ------------------
 As mentioned elsewhere, this extensions uses the `fake-factory`_ library

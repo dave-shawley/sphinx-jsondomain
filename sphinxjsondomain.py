@@ -261,6 +261,10 @@ class JSONDomain(domains.Domain):
                           ('number', 'float'), ('bool', 'boolean')]:
         REF_TYPES[alias] = REF_TYPES[target]
 
+    # create aliases for array
+    for target in REF_TYPES.copy().keys():
+        REF_TYPES['[%s]' % target] = REF_TYPES[target]
+
     def clear_doc(self, docname):
         names = [k for k, v in self.data['objects'].items()
                  if v.docname == docname]
@@ -395,6 +399,11 @@ class JSONDomain(domains.Domain):
             parent.append(example)
 
 
+class PropertyQualifier:
+    def __init__(self):
+        self.is_array = False
+
+
 class PropertyDefinition(object):
     """
     Information about a specific JSON Object definition.
@@ -412,6 +421,7 @@ class PropertyDefinition(object):
         self.should_index = should_index
         self.property_types = {}
         self.property_options = {}
+        self.property_qualifiers = {}  # a map of property name --> PropertyQualifier
 
     def gather(self, contentnode):
         """
@@ -432,6 +442,13 @@ class PropertyDefinition(object):
                         else:
                             typ = None
                             name = tokens[1]
+
+                        # check if name is enclosed by []
+                        if typ and typ.startswith('[') and typ.endswith(']'):
+                            typ = typ[1:-1]
+
+                            self.property_qualifiers[name] = self.property_qualifiers.get(name, PropertyQualifier())
+                            self.property_qualifiers[name].is_array = True
 
                         self.set_property_type(name, typ)
                         field_nodes[name] = content
@@ -490,34 +507,49 @@ class PropertyDefinition(object):
     def generate_sample_data(self, all_objects, fake_factory):
         sample_data = {}
         for name, typ in self.property_types.items():
-            if typ:
-                try:
-                    other = all_objects[typ]
-                    value = other.generate_sample_data(all_objects,
-                                                       fake_factory)
-                except KeyError:
-                    value = None
 
-                if value is None:
-                    if hasattr(fake_factory, typ):
-                        value = getattr(fake_factory, typ)()
-                    elif typ in ('integer', 'int'):
-                        value = fake_factory.pyint()
-                    elif typ in ('string', 'str'):
-                        value = fake_factory.pystr()
-                    elif typ in ('boolean', 'bool'):
-                        value = fake_factory.pybool()
-                    elif typ == 'null':
-                        value = None
-
-                if value is None and typ != 'null':
-                    value = '{%s object}' % typ
+            if name in self.property_qualifiers and self.property_qualifiers[name].is_array:
+                sample_data[name] = [
+                    self.generate_sample_data_for_type(typ, all_objects, fake_factory),
+                    self.generate_sample_data_for_type(typ, all_objects, fake_factory)]
 
             else:
-                value = '\uFFFD (Unspecified)'
-            sample_data[name] = value
+                sample_data[name] = self.generate_sample_data_for_type(typ, all_objects, fake_factory)
 
         return sample_data
+
+    @staticmethod
+    def generate_sample_data_for_type(typ, all_objects, fake_factory):
+        if typ:
+            # if name in self.property_qualifiers:
+            #    if self.property_qualifiers[name].is_array:
+
+            try:
+                other = all_objects[typ]
+                value = other.generate_sample_data(all_objects,
+                                                   fake_factory)
+            except KeyError:
+                value = None
+
+            if value is None:
+                if hasattr(fake_factory, typ):
+                    value = getattr(fake_factory, typ)()
+                elif typ in ('integer', 'int'):
+                    value = fake_factory.pyint()
+                elif typ in ('string', 'str'):
+                    value = fake_factory.pystr()
+                elif typ in ('boolean', 'bool'):
+                    value = fake_factory.pybool()
+                elif typ == 'null':
+                    value = None
+
+            if value is None and typ != 'null':
+                value = '{%s object}' % typ
+
+        else:
+            value = '\uFFFD (Unspecified)'
+
+        return value
 
 
 def normalize_object_name(obj_name):
