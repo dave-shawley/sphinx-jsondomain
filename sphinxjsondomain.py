@@ -696,6 +696,8 @@ class PropertyDefinition(object):
                     value = fake_factory.pystr()
                 elif typ in ('boolean', 'bool'):
                     value = fake_factory.pybool()
+                elif typ in ('float'):
+                    value = fake_factory.pyfloat()
                 elif typ == 'null':
                     value = None
 
