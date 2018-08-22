@@ -437,9 +437,7 @@ class JSONDomain(domains.Domain):
         the type is ``uri``, then a link to the RFC is generated.
 
         """
-
         if node.get('json:name'):
-
             objdef = self.get_object(node['json:name'])
             if objdef:
                 return node_utils.make_refnode(builder, fromdocname,
@@ -651,7 +649,15 @@ class PropertyDefinition(object):
             # the data generator
             def gen_data():
                 if name in self.property_qualifiers and self.property_qualifiers[name].example_data:
-                    return self.property_qualifiers[name].example_data
+
+                    # try to cast data to user type
+                    data = self.property_qualifiers[name].example_data
+                    try:
+                        data = __builtins__[typ](data)
+                    except:
+                        pass
+
+                    return data
                 else:
                     return self.generate_sample_data_for_type(typ, all_objects, fake_factory)
 
