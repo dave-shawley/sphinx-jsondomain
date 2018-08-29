@@ -26,10 +26,16 @@ ReStructuredText Usage
       recognizable.  It is also used to generate sample data, if the
       ``:showexample:`` option is included.
 
+   **:property-opt** *[type]* *identifier* **:** *description*
+      Same as above, but add an '(optional)' string at the end.
+
    **:proptype** *identifier* **:** *type*
       Set's the type of the property named *identifier*.  This is
       necessary if you are setting the property type to a hyperlinked
       value (e.g., :rst:role:`json:object` role instance).
+
+   **:propexample** *identifier* **:** *example*
+      Set's the example showed when the *showexample* option is enabled.
 
    **:showexample:**
       If this option is specified, then the rendered output will contain
@@ -102,6 +108,8 @@ generate example snippets if the *:showexample:* option is included.
 **user_name** links to the defintion for the Python :class:`str` type.
    Examples are generated using `faker.providers.internet`_.
 
+**[type]** by enclosing any type into [], it indicate a json array.
+
 Example Generation
 ------------------
 As mentioned elsewhere, this extensions uses the `fake-factory`_ library
@@ -133,6 +141,7 @@ example.
       :property street_address street: street address for this
          location
       :property city city: city name
+      :propexample city: New York
       :property state_abbr state: abbreviated state name
       :property postalcode zip: postal code for this address
 

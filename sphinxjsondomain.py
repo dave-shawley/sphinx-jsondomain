@@ -14,6 +14,135 @@ except ImportError:
     yaml = None
 
 
+def is_json_array(typename):
+    """ Check if a property type is an array.
+        For example: [int], [uuid4] are array
+    """
+    return typename and typename.startswith('[') and typename.endswith(']')
+
+
+def strip_json_array(typename):
+    """ Strip json array enclosing brackets from a typename.
+        [int] -> int
+    """
+    if typename and typename.startswith('[') and typename.endswith(']'):
+        return typename[1:-1]
+    return typename
+
+
+class JsonField(docfields.TypedField):
+    def __init__(self, name, names=(), typenames=[], label=None, examplenames=(),
+                 rolename=None, typerolename=None, can_collapse=False):
+        docfields.TypedField.__init__(self, name, names, typenames, label, rolename, typerolename, can_collapse)
+        self.examplenames = examplenames
+
+
+class JsonFieldTransformer(docfields.DocFieldTransformer):
+    def __init__(self, directive):
+        docfields.DocFieldTransformer.__init__(self, directive)
+
+        self.examplemap = {}
+
+        for fieldtype in self.directive.__class__.doc_field_types:
+            for name in fieldtype.examplenames:
+                self.examplemap[name] = True
+
+    def transform(self, node):
+        # type: (nodes.Node) -> None
+        """Transform a single field list *node*."""
+        typemap = self.typemap
+
+        entries = []
+        groupindices = {}  # type: Dict[unicode, int]
+        types = {}  # type: Dict[unicode, Dict]
+
+        # step 1: traverse all fields and collect field types and content
+        for field in node:
+            fieldname, fieldbody = field
+            try:
+                # split into field type and argument
+                fieldtype, fieldarg = fieldname.astext().split(None, 1)
+            except ValueError:
+                # maybe an argument-less field type?
+                fieldtype, fieldarg = fieldname.astext(), ''
+            typedesc, is_typefield = typemap.get(fieldtype, (None, None))
+
+            # collect the content, trying not to keep unnecessary paragraphs
+            if docfields._is_single_paragraph(fieldbody):
+                content = fieldbody.children[0].children
+            else:
+                content = fieldbody.children
+
+            # sort out unknown fields
+            if typedesc is None or typedesc.has_arg != bool(fieldarg):
+                continue
+
+            typename = typedesc.name
+
+            # if the field specifies a type, put it in the types collection
+            if is_typefield:
+                # filter out only inline nodes; others will result in invalid
+                # markup being written out
+                content = [n for n in content if isinstance(n, nodes.Inline) or
+                           isinstance(n, nodes.Text)]
+                if content:
+                    types.setdefault(typename, {})[fieldarg] = content
+                continue
+
+            # also support syntax like ``:param type name:``
+            if typedesc.is_typed:
+                try:
+                    argtype, argname = fieldarg.split(None, 1)
+                except ValueError:
+                    pass
+                else:
+                    xrefs = typedesc.make_xrefs(
+                        nodes.Text(argtype),
+                        self.directive.domain,
+                        nodes.Text(argtype),
+                    )
+                    xrefs[0].attributes['json:name'] = strip_json_array(nodes.Text(argtype))
+                    types.setdefault(typename, {})[argname] = xrefs
+                    fieldarg = argname
+
+            translatable_content = nodes.inline(fieldbody.rawsource,
+                                                translatable=True)
+            translatable_content.document = fieldbody.parent.document
+            translatable_content.source = fieldbody.parent.source
+            translatable_content.line = fieldbody.parent.line
+            translatable_content += content
+
+            # grouped entries need to be collected in one entry, while others
+            # get one entry per field
+            if typedesc.is_grouped:
+                if typename in groupindices:
+                    group = entries[groupindices[typename]]
+                else:
+                    groupindices[typename] = len(entries)
+                    group = [typedesc, []]
+                    entries.append(group)
+                entry = typedesc.make_entry(fieldarg, [translatable_content])
+                group[1].append(entry)
+            else:
+                entry = typedesc.make_entry(fieldarg, [translatable_content])
+                entries.append([typedesc, entry])
+
+        # step 2: all entries are collected, construct the new field list
+        new_list = nodes.field_list()
+        for entry in entries:
+            if isinstance(entry, nodes.field):
+                # pass-through old field
+                new_list += entry
+            else:
+                fieldtype, content = entry
+                fieldtypes = types.get(fieldtype.name, {})
+                env = self.directive.state.document.settings.env
+                new_list += fieldtype.make_field(fieldtypes, self.directive.domain,
+                                                 content, env=env)
+
+        node.replace_self(new_list)
+
+
 class JSONObject(directives.ObjectDescription):
     """
     Implementation of ``json:object``.
@@ -34,12 +163,13 @@ class JSONObject(directives.ObjectDescription):
 
     """
 
-    doc_field_types = [docfields.TypedField('property',
+    doc_field_types = [JsonField('property',
                                             label='Object Properties',
-                                            names=('property', 'member'),
+                                            names=('property', 'property-opt', 'member'),
                                             rolename='prop',
                                             typerolename='jsonprop',
-                                            typenames=('proptype', 'type'))]
+                                            typenames=('proptype', 'type'),
+                                            examplenames=['propexample'])]
     """A list of fields that are implemented."""
 
     option_spec = {
@@ -129,7 +259,7 @@ class JSONObject(directives.ObjectDescription):
             if not noindex:
                 self.add_target_and_index(name, node, signode)
 
-        docfields.DocFieldTransformer(self).transform_all(contentnode)
+        JsonFieldTransformer(self).transform_all(contentnode)
 
         if 'showexample' in self.options:
             paragraph = addnodes.compact_paragraph()
@@ -255,11 +385,16 @@ class JSONDomain(domains.Domain):
         'md5': ('https://tools.ietf.org/html/rfc1321', 'MD5 checksum'),
         'sha1': ('https://tools.ietf.org/html/rfc3174', 'SHA1 checksum'),
         'sha256': ('https://tools.ietf.org/html/rfc6234', 'SHA256 checksum'),
+        'sentence': ('https://faker.readthedocs.io/en/master/locales/en_US.html#faker-providers-lorem', 'A sentence'),
     }
     for alias, target in [('url', 'uri'), ('int', 'integer'),
                           ('str', 'string'), ('user_name', 'string'),
                           ('number', 'float'), ('bool', 'boolean')]:
         REF_TYPES[alias] = REF_TYPES[target]
+
+    # create aliases for array
+    for target in REF_TYPES.copy().keys():
+        REF_TYPES['[%s]' % target] = REF_TYPES[target]
 
     def clear_doc(self, docname):
         names = [k for k, v in self.data['objects'].items()
@@ -308,7 +443,8 @@ class JSONDomain(domains.Domain):
                 return node_utils.make_refnode(builder, fromdocname,
                                                objdef.docname, objdef.key,
                                                contnode)
-        if typ == 'jsonprop':
+
+        if typ in self.REF_TYPES:
             try:
                 ref = nodes.reference(internal=False)
                 ref['refuri'], ref['reftitle'] = self.REF_TYPES[target]
@@ -395,6 +531,12 @@ class JSONDomain(domains.Domain):
             parent.append(example)
 
 
+class PropertyQualifier:
+    def __init__(self):
+        self.is_array = False
+        self.example_data = None
+
+
 class PropertyDefinition(object):
     """
     Information about a specific JSON Object definition.
@@ -412,19 +554,21 @@ class PropertyDefinition(object):
         self.should_index = should_index
         self.property_types = {}
         self.property_options = {}
+        self.property_qualifiers = {}  # a map of property name --> PropertyQualifier
 
     def gather(self, contentnode):
         """
         :param docutils.nodes.Element contentnode:
         """
         field_nodes = {}
+        optional_props = {}
         for node in contentnode:
             if isinstance(node, nodes.field_list):
                 children = list(node)
                 for field in node:
                     description, content = field
                     tokens = description.astext().split()
-                    if tokens[0] == 'property':
+                    if tokens[0] == 'property' or tokens[0] == 'property-opt':
                         if len(tokens) == 3:
                             typ = tokens[1]
                             name = tokens[2]
@@ -432,8 +576,18 @@ class PropertyDefinition(object):
                             typ = None
                             name = tokens[1]
 
+                        # check if name is enclosed by []
+                        if is_json_array(typ):
+                            typ = strip_json_array(typ)
+
+                            self.property_qualifiers[name] = self.property_qualifiers.get(name, PropertyQualifier())
+                            self.property_qualifiers[name].is_array = True
+
                         self.set_property_type(name, typ)
                         field_nodes[name] = content
+
+                        if tokens[0] == 'property-opt':
+                            optional_props[name] = True
 
                     elif tokens[0] == 'proptype':
                         name = tokens[1]
@@ -445,6 +599,12 @@ class PropertyDefinition(object):
 
                         self.set_property_type(name, typ)
 
+                    elif tokens[0] == 'propexample':
+                        name = tokens[1]
+
+                        self.property_qualifiers[name] = self.property_qualifiers.get(name, PropertyQualifier())
+                        self.property_qualifiers[name].example_data = content[0][0].lstrip()
+
                     elif tokens[0] == 'options':
                         name = tokens[1]
                         self.property_options[name] = \
@@ -452,6 +612,15 @@ class PropertyDefinition(object):
                         children.remove(field)
 
                 node.children = children
+
+        for opt_name in optional_props.keys():
+            try:
+                n = field_nodes[opt_name][0]
+                n += nodes.inline(' (', ' (')
+                n += nodes.strong('optional', 'optional')
+                n += nodes.inline(')', ')')
+            except KeyError:
+                pass
 
         for name, options in self.property_options.items():
             if not options:
@@ -477,34 +646,68 @@ class PropertyDefinition(object):
     def generate_sample_data(self, all_objects, fake_factory):
         sample_data = {}
         for name, typ in self.property_types.items():
-            if typ:
-                try:
-                    other = all_objects[typ]
-                    value = other.generate_sample_data(all_objects,
-                                                       fake_factory)
-                except KeyError:
-                    value = None
+            # the data generator
+            def gen_data():
+                if name in self.property_qualifiers and self.property_qualifiers[name].example_data:
 
-                if value is None:
-                    if hasattr(fake_factory, typ):
-                        value = getattr(fake_factory, typ)()
-                    elif typ in ('integer', 'int'):
-                        value = fake_factory.pyint()
-                    elif typ in ('string', 'str'):
-                        value = fake_factory.pystr()
-                    elif typ in ('boolean', 'bool'):
-                        value = fake_factory.pybool()
-                    elif typ == 'null':
-                        value = None
+                    # try to cast data to user type
+                    data = self.property_qualifiers[name].example_data
+                    try:
+                        data = __builtins__[typ](data)
+                    except:
+                        pass
 
-                if value is None and typ != 'null':
-                    value = '{%s object}' % typ
+                    return data
+                else:
+                    return self.generate_sample_data_for_type(typ, all_objects, fake_factory)
+
+            if name in self.property_qualifiers:
+                if self.property_qualifiers[name].is_array:
+                    sample_data[name] = [
+                        gen_data(),
+                        gen_data()]
+                else:
+                    sample_data[name] = gen_data()
 
             else:
-                value = '\uFFFD (Unspecified)'
-            sample_data[name] = value
+                sample_data[name] = gen_data()
 
         return sample_data
+
+    @staticmethod
+    def generate_sample_data_for_type(typ, all_objects, fake_factory):
+        if typ:
+            # if name in self.property_qualifiers:
+            #    if self.property_qualifiers[name].is_array:
+
+            try:
+                other = all_objects[typ]
+                value = other.generate_sample_data(all_objects,
+                                                   fake_factory)
+            except KeyError:
+                value = None
+
+            if value is None:
+                if hasattr(fake_factory, typ):
+                    value = getattr(fake_factory, typ)()
+                elif typ in ('integer', 'int'):
+                    value = fake_factory.pyint()
+                elif typ in ('string', 'str'):
+                    value = fake_factory.pystr()
+                elif typ in ('boolean', 'bool'):
+                    value = fake_factory.pybool()
+                elif typ in ('float'):
+                    value = fake_factory.pyfloat()
+                elif typ == 'null':
+                    value = None
+
+            if value is None and typ != 'null':
+                value = '{%s object}' % typ
+
+        else:
+            value = '\uFFFD (Unspecified)'
+
+        return value
 
 
 def normalize_object_name(obj_name):
