@@ -235,17 +235,6 @@ class JSONDomain(domains.Domain):
     REF_TYPES = {  # type-name -> (URL, tool tip)
         'uri': ('https://tools.ietf.org/html/rfc3986',
                 'URI as described in RFC3986'),
-        'boolean': (
-            'https://docs.python.org/library/stdtypes.html#boolean-values',
-            'Python Boolean'),
-        'string': ('https://docs.python.org/library/stdtypes.html#str',
-                   'Python String'),
-        'integer': ('https://docs.python.org/library/stdtypes.html#int',
-                    'Python Integer'),
-        'float': ('https://docs.python.org/library/stdtypes.html#float',
-                  'Python Float'),
-        'null': ('https://docs.python.org/library/constants.html#None',
-                 'Python None'),
         'email': ('https://tools.ietf.org/html/rfc2822#section-3.4.1',
                   'Email Address'),
         'iso8601': ('https://tools.ietf.org/html/rfc3339#section-5.6',
@@ -256,9 +245,7 @@ class JSONDomain(domains.Domain):
         'sha1': ('https://tools.ietf.org/html/rfc3174', 'SHA1 checksum'),
         'sha256': ('https://tools.ietf.org/html/rfc6234', 'SHA256 checksum'),
     }
-    for alias, target in [('url', 'uri'), ('int', 'integer'),
-                          ('str', 'string'), ('user_name', 'string'),
-                          ('number', 'float'), ('bool', 'boolean')]:
+    for alias, target in [('url', 'uri')]:
         REF_TYPES[alias] = REF_TYPES[target]
 
     def clear_doc(self, docname):
