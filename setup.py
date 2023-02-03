@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import os.path
+"""Setup configuration for the package."""
 from pathlib import Path
 
 import setuptools
