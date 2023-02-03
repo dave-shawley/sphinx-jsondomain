@@ -354,7 +354,7 @@ class JSONDomain(domains.Domain):
         """
         Generate example snippets after the document has been processed.
 
-        :param str docname: documentat that is being processed.  This is
+        :param str docname: document that is being processed.  This is
             used to report warnings.
 
         This is called from within :meth:`.process_doc` after our superclass
@@ -508,6 +508,7 @@ class PropertyDefinition(object):
 
 
 def normalize_object_name(obj_name):
+    """Adjust object names to conform with our preferences."""
     return re.sub(r'\s+', '-', obj_name).strip('-').lower()
 
 
