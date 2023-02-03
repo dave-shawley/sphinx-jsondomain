@@ -1,3 +1,4 @@
+"""Test module for the Sphinx JSON Domain."""
 import sphinxjsondomain
 
 def test_normalize_object_name():

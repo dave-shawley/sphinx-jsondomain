@@ -4,15 +4,15 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-sphinx = "*"
 faker = "*"
+sphinx = "*"
 
 [dev-packages]
+autopep8 = "*"
 jupyter = "*"
+pylint = "*"
 pytest = "*"
 pytest-cov = "*"
 pyyaml = "*"
 semver = {ref = "2.13.0", git = "https://github.com/python-semver/python-semver.git"}
 wheel = "*"
-autopep8 = "*"
-pylint = "*"
