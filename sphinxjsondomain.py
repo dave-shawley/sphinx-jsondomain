@@ -1,3 +1,4 @@
+"""Add a JSON domain to Sphinx."""
 import json
 import re
 
