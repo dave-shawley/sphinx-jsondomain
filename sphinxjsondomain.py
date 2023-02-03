@@ -230,7 +230,7 @@ class JSONDomain(domains.Domain):
         'all_objects': {},  # name -> PropertyDefinition
         'examples': [],  # tuple(obj-key, format, content-parent)
     }
-    indicies = []
+    indices = []
 
     REF_TYPES = {  # type-name -> (URL, tool tip)
         'uri': ('https://tools.ietf.org/html/rfc3986',
