@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-
 import os.path
+from pathlib import Path
 
 import setuptools
 
@@ -18,13 +18,20 @@ def read_requirements(name):
                 requirements.append(line)
     return requirements
 
+def long_description():
+    """Return the contents of the readme."""
+    r_path=Path('readme.md')
+    with r_path.open('r', encoding='utf-8') as r_fh:
+        r_str = r_fh.read()
+    return r_str
+
 
 setuptools.setup(
     name='sphinx-jsondomain',
     version='0.0.3',
-    url='https://github.com/dave-shawley/sphinx-jsondomain',
+    url='https://github.com/edwardtheharris/sphinx-jsondomain',
     description='Describe JSON document structures in sphinx',
-    long_description='\n'+open('README.rst').read(),
+    long_description=long_description(),
     license='BSD',
     author='Dave Shawley',
     author_email='daveshawley+python@gmail.com',
