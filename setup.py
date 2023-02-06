@@ -34,7 +34,7 @@ setuptools.setup(
     ],
     description='Describe JSON document structures in sphinx',
     install_requires=[
-        'faker'
+        'faker',
         'sphinx',
     ],
     license='BSD',

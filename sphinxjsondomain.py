@@ -7,7 +7,10 @@ from typing import Tuple
 
 from docutils import nodes
 from docutils.parsers.rst import directives as rst_directives
-from sphinx import addnodes, directives, domains, roles
+from sphinx import addnodes
+from sphinx import directives
+from sphinx import domains
+from sphinx import roles
 from sphinx.util import docfields
 from sphinx.util import nodes as node_utils
 import faker
@@ -276,6 +279,7 @@ class JSONDomain(domains.Domain):
         REF_TYPES[alias] = REF_TYPES[target]
 
     def clear_doc(self, docname):
+        """Clear a document."""
         names = [k for k, v in self.data['objects'].items()
                  if v.docname == docname]
         for name in names:
@@ -283,15 +287,18 @@ class JSONDomain(domains.Domain):
         del self.data['examples'][:]
 
     def process_doc(self, env, docname, document):
+        """Process a document."""
         super().process_doc(env, docname, document)
         self.generate_examples(docname)
 
     def get_objects(self):
+        """Get a list of objects."""
         for objdef in self.data['objects'].values():
             yield (objdef.name, objdef.name, 'object', objdef.docname,
                    objdef.key, 1)
 
     def merge_domaindata(self, docnames: List[str], otherdata: Dict) -> None:
+        """Merge domain data."""
         return super().merge_domaindata(docnames, otherdata)
 
     # pylint: disable=too-many-arguments
@@ -299,6 +306,7 @@ class JSONDomain(domains.Domain):
             self, env: str, fromdocname: str,
             builder: str, target: str, node: str,
             contnode: nodes.Element) -> List[Tuple[str, nodes.Element]]:
+        """Resolve any cross references."""
         return super().resolve_any_xref(
             env, fromdocname, builder, target, node, contnode)
 
@@ -431,6 +439,7 @@ class PropertyDefinition():
     """
 
     def __init__(self, name, docname, should_index=True):
+        """Initialize a PropertyDefinition object."""
         self.name = name
         self.key = normalize_object_name(name)
         self.docname = docname
@@ -440,6 +449,8 @@ class PropertyDefinition():
 
     def gather(self, contentnode):
         """
+        Gather content.
+
         :param docutils.nodes.Element contentnode:
         """
         field_nodes = {}
