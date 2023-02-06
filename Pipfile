@@ -10,6 +10,7 @@ sphinx = "*"
 [dev-packages]
 autopep8 = "*"
 jupyter = "*"
+pydocstyle = "*"
 pylint = "*"
 pytest = "*"
 pytest-cov = "*"

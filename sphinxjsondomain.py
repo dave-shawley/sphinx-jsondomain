@@ -1,6 +1,9 @@
 """Add a JSON domain to Sphinx."""
 import json
 import re
+from typing import Dict
+from typing import List
+from typing import Tuple
 
 from docutils import nodes
 from docutils.parsers.rst import directives as rst_directives
@@ -68,6 +71,13 @@ class JSONObject(directives.ObjectDescription):
     #
     # NB self.domain is required to be the name of the sphinx domain
     # inside of DocFieldTransformer
+    def __init__(self):
+        """Initialize the class."""
+        self.names = []
+        self.domain_obj = ''
+        super().__init__(
+            name='', arguments='', options='', content='', lineno='',
+            content_offset='', block_text='', state='', state_machine='')
 
     def run(self):
         """
@@ -93,6 +103,7 @@ class JSONObject(directives.ObjectDescription):
 
         """
         self.domain, sep, objtype = self.name.partition(':')
+        print(sep)
         if not objtype:  # swap domain and objtype
             objtype = self.domain
             self.domain = ''
@@ -120,11 +131,12 @@ class JSONObject(directives.ObjectDescription):
 
         props = self.domain_obj.get_object(name)
         if props:
-            env.warn(env.docname,
-                     'JSON type {} already documented in {}'.format(
-                         name,
-                         env.doc2path(props.docname)),
-                     self.lineno)
+            env.warn(
+                env.docname,
+                (
+                    f'JSON type {name} already documented '
+                    f'in {env.doc2path(props.docname)}'),
+                self.lineno)
         else:
             self.domain_obj.add_object(name, env, contentnode)
             if not noindex:
@@ -162,12 +174,13 @@ class JSONObject(directives.ObjectDescription):
         signode['ids'].append(key)
         signode['first'] = not self.names
         self.indexnode['entries'].append(
-            ('single', 'JSON Objects; {}'.format(name), key, '', None))
+            ('single', f'JSON Objects; {name}', key, '', None))
 
 
 class JSONXRef(roles.XRefRole):
     """Implementation of the ``:json:object:`` cross-reference."""
 
+    # pylint: disable=too-many-arguments
     def process_link(self, env, refnode, has_explicit_title, title, target):
         """
         Process a single link.
@@ -270,13 +283,24 @@ class JSONDomain(domains.Domain):
         del self.data['examples'][:]
 
     def process_doc(self, env, docname, document):
-        super(JSONDomain, self).process_doc(env, docname, document)
+        super().process_doc(env, docname, document)
         self.generate_examples(docname)
 
     def get_objects(self):
         for objdef in self.data['objects'].values():
             yield (objdef.name, objdef.name, 'object', objdef.docname,
                    objdef.key, 1)
+
+    def merge_domaindata(self, docnames: List[str], otherdata: Dict) -> None:
+        return super().merge_domaindata(docnames, otherdata)
+
+    # pylint: disable=too-many-arguments
+    def resolve_any_xref(
+            self, env: str, fromdocname: str,
+            builder: str, target: str, node: str,
+            contnode: nodes.Element) -> List[Tuple[str, nodes.Element]]:
+        return super().resolve_any_xref(
+            env, fromdocname, builder, target, node, contnode)
 
     def resolve_xref(self, env, fromdocname, builder, typ, target,
                      node, contnode):
@@ -306,17 +330,17 @@ class JSONDomain(domains.Domain):
         if node.get('json:name'):
             objdef = self.get_object(node['json:name'])
             if objdef:
-                return node_utils.make_refnode(builder, fromdocname,
-                                               objdef.docname, objdef.key,
-                                               contnode)
+                return_value = node_utils.make_refnode(
+                    builder, fromdocname, objdef.docname, objdef.key, contnode)
         if typ == 'jsonprop':
             try:
                 ref = nodes.reference(internal=False)
                 ref['refuri'], ref['reftitle'] = self.REF_TYPES[target]
                 ref.append(contnode)
-                return ref
+                return_value = ref
             except KeyError:
                 pass
+        return return_value
 
     def get_object(self, name):
         """
@@ -396,7 +420,7 @@ class JSONDomain(domains.Domain):
             parent.append(example)
 
 
-class PropertyDefinition(object):
+class PropertyDefinition():
     """
     Information about a specific JSON Object definition.
 
@@ -470,12 +494,14 @@ class PropertyDefinition(object):
                 pass
 
     def set_property_type(self, name, typ):
+        """Set property type."""
         if name in self.property_types and not typ:
             return
 
         self.property_types[name] = typ
 
     def generate_sample_data(self, all_objects, fake_factory):
+        """Generate sample data."""
         sample_data = {}
         for name, typ in self.property_types.items():
             if typ:
@@ -514,4 +540,5 @@ def normalize_object_name(obj_name):
 
 
 def setup(app):
+    """Set up the extension in the Sphinx app."""
     app.add_domain(JSONDomain)
