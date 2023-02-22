@@ -1,0 +1,19 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+faker = "*"
+sphinx = "*"
+
+[dev-packages]
+autopep8 = "*"
+jupyter = "*"
+pydocstyle = "*"
+pylint = "*"
+pytest = "*"
+pytest-cov = "*"
+pyyaml = "*"
+semver = {ref = "2.13.0", git = "https://github.com/python-semver/python-semver.git"}
+wheel = "*"
