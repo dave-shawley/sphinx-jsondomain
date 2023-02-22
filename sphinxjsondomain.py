@@ -494,13 +494,13 @@ class PropertyDefinition():
                 continue
 
             try:
-                n = field_nodes[name][0]
-                n += nodes.inline(' (', ' (')
-                n += nodes.emphasis(options[0], options[0])
+                this_node = field_nodes[name][0]
+                this_node += nodes.inline(' (', ' (')
+                this_node += nodes.emphasis(options[0], options[0])
                 for opt in options[1:]:
-                    n += nodes.inline(', ', ', ')
-                    n += nodes.emphasis(opt, opt)
-                n += nodes.inline(')', ')')
+                    this_node += nodes.inline(', ', ', ')
+                    this_node += nodes.emphasis(opt, opt)
+                this_node += nodes.inline(')', ')')
             except KeyError:
                 pass
 
@@ -536,7 +536,7 @@ class PropertyDefinition():
                         value = None
 
                 if value is None and typ != 'null':
-                    value = '{%s object}' % typ
+                    value = '{'+f'{typ}'+' object}'
 
             else:
                 value = '\uFFFD (Unspecified)'
