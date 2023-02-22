@@ -447,6 +447,7 @@ class PropertyDefinition():
         self.property_types = {}
         self.property_options = {}
 
+    # pylint: disable=R0912
     def gather(self, contentnode):
         """
         Gather content.
