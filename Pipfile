@@ -5,6 +5,7 @@ name = "pypi"
 
 [packages]
 faker = "*"
+pyyaml = "*"
 sphinx = "*"
 
 [dev-packages]
@@ -14,6 +15,5 @@ pydocstyle = "*"
 pylint = "*"
 pytest = "*"
 pytest-cov = "*"
-pyyaml = "*"
 semver = {ref = "2.13.0", git = "https://github.com/python-semver/python-semver.git"}
 wheel = "*"
